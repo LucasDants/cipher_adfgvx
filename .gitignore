@@ -1,1 +1,4 @@
-dist/*
+src/*.dSYM
+.DS_Store
+src/cipher_adfgvx
+src/main_test
