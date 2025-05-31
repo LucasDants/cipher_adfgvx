@@ -18,28 +18,6 @@ const char square[6][6] = {
 
 // ! CIPHER FUNCTIONS
 /**
- * @brief Lê o conteúdo de um arquivo em um buffer.
- *
- * @param filename Caminho para o arquivo a ser lido.
- * @param buffer Buffer onde o conteúdo será armazenado.
- * @param max_length Tamanho máximo permitido do buffer.
- * @return int 0 em caso de sucesso, 1 em caso de erro.
- */
-int read_file(const char *filename, char *buffer, int max_length)
-{
-    FILE *file = fopen(filename, "r");
-    if (file == NULL)
-    {
-        return 1;
-    }
-
-    fgets(buffer, max_length, file);
-
-    fclose(file);
-    return 0;
-}
-
-/**
  * @brief Encontra os símbolos ADFGVX correspondentes a um caractere.
  *
  * @param c Caractere a ser cifrado.
@@ -333,6 +311,115 @@ void decipher_adfgvx(char *encrypted_text, char *key, int key_length, char *outp
 
 // * Testes para o algoritmo ADFGVX
 /**
+ * @brief Testa a função get_adfgvx_symbols com caracteres válidos e inválidos.
+ *
+ * Verifica se a função retorna corretamente os símbolos ADFGVX correspondentes
+ * a um caractere presente na matriz, e se ignora corretamente os caracteres inválidos.
+ */
+void test_get_adfgvx_symbols()
+{
+    char row, col;
+    int success = get_adfgvx_symbols('C', &row, &col);
+
+    if (success && row == 'A' && col == 'F')
+    {
+        printf("\tSucesso: 'C' convertido para [%c, %c]\n", row, col);
+    }
+    else
+    {
+        printf("\tErro: Obteve [%c, %c]\n", row, col);
+    }
+
+    success = get_adfgvx_symbols('#', &row, &col);
+    if (!success)
+    {
+        printf("\tSucesso: Caractere # corretamente rejeitado.\n");
+    }
+    else
+    {
+        printf("\tErro: Caractere # foi aceito!\n");
+    }
+}
+
+/**
+ * @brief Testa a função insert_symbol_to_column para inserção circular nas colunas.
+ *
+ * Verifica se os símbolos são inseridos corretamente nas colunas com base no contador global.
+ */
+void test_insert_symbol_to_column()
+{
+    char matrix[3][MAX_MESSAGE_LENGTH] = {{0}};
+    int symbols_per_column[3] = {0};
+    int symbol_count = 0;
+
+    insert_symbol_to_column(3, 'X', &symbol_count, matrix, symbols_per_column);
+    insert_symbol_to_column(3, 'F', &symbol_count, matrix, symbols_per_column);
+    insert_symbol_to_column(3, 'A', &symbol_count, matrix, symbols_per_column);
+    insert_symbol_to_column(3, 'G', &symbol_count, matrix, symbols_per_column);
+
+    if (matrix[0][0] == 'X' && matrix[1][0] == 'F' && matrix[2][0] == 'A' && matrix[0][1] == 'G')
+    {
+        printf("\tSucesso: Symbols inseridos nas colunas corretas.\n");
+    }
+    else
+    {
+        printf("\tErro: Symbols incorretos nas colunas.\n");
+    }
+}
+
+/**
+ * @brief Testa a função polybius_encode_to_columns com uma string simples.
+ *
+ * Garante que os pares de símbolos gerados estão sendo corretamente organizados por coluna.
+ */
+void test_polybius_encode_to_columns()
+{
+    char message[] = "AB";
+    char matrix[2][MAX_MESSAGE_LENGTH] = {{0}};
+    int symbols_per_column[2] = {0};
+
+    polybius_encode_to_columns(2, message, matrix, symbols_per_column);
+
+    if (symbols_per_column[0] == 2 && symbols_per_column[1] == 2)
+    {
+        printf("\tSucesso: Mensagem 'AB' cifrada corretamente.\n");
+    }
+    else
+    {
+        printf("\tErro: Quantidade de symbols incorreta.\n");
+    }
+}
+
+/**
+ * @brief Testa a função transpose_columns_by_key_order.
+ *
+ * Usa uma chave fora de ordem alfabética para verificar se as colunas são corretamente reordenadas.
+ */
+void test_transpose_columns_by_key_order()
+{
+    char key[] = "CAB"; // ordem alfabética: A B C -> índices 2 1 0
+    int key_length = 3;
+
+    char matrix[3][MAX_MESSAGE_LENGTH] = {
+        {'C', '1', '2'},
+        {'A', '3', '4'},
+        {'B', '5', '6'}};
+    int symbols_per_column[3] = {3, 3, 3};
+
+    transpose_columns_by_key_order(key, key_length, matrix, symbols_per_column);
+
+    if (matrix[0][0] == 'A' && matrix[1][0] == 'B' && matrix[2][0] == 'C')
+    {
+        printf("\tSucesso: Colunas transpostas conforme ordem da chave.\n");
+    }
+    else
+    {
+        printf("\tErro: Esperado: A-B-C, Obtido: %c-%c-%c\n",
+               matrix[0][0], matrix[1][0], matrix[2][0]);
+    }
+}
+
+/**
  * @brief Testa a função de decifragem comparando com a mensagem original.
  *
  * @note Usamos key UM e a messagem LUCAS previamente testadas tanto no site https://www.dcode.fr/adfgvx-cipher, quanto realizando a cifragem manualmente.
@@ -364,9 +451,9 @@ void test_decipher(char key[], char original_message[])
     char decrypted[MAX_MESSAGE_LENGTH];
     decipher_adfgvx(encrypted, key, key_length, decrypted);
 
-    printf("\t\tMensagem original:   %s\n", original_message);
-    printf("\t\tMensagem cifrada:    %s\n", encrypted);
-    printf("\t\tMensagem decifrada:  %s\n", decrypted);
+    printf("\t\tMensagem original:   %.20s\n", original_message);
+    printf("\t\tMensagem cifrada:    %.20s\n", encrypted);
+    printf("\t\tMensagem decifrada:  %.20s\n", decrypted);
 
     if (strcmp(original_message, decrypted) == 0)
     {
@@ -456,6 +543,18 @@ void test_invalid_character()
 int main()
 {
     printf("Executando testes do algoritmo ADFGVX...\n");
+
+    printf("\n-> Teste: get_adfgvx_symbols\n");
+    test_get_adfgvx_symbols();
+
+    printf("\n-> Teste: insert_symbol_to_column\n");
+    test_insert_symbol_to_column();
+
+    printf("\n-> Teste: polybius_encode_to_columns\n");
+    test_polybius_encode_to_columns();
+
+    printf("\n-> Teste: transpose_columns_by_key_order\n");
+    test_transpose_columns_by_key_order();
 
     printf("\n-> Teste: Decrypting with known encrypting XFFAADGAAG \n");
     test_decipher("UM", "LUCAS");

@@ -8,28 +8,28 @@ Implementação em C do algoritmo de cifra **ADFGVX**, com suporte a testes auto
 
 ### 📄 Arquivos de Entrada
 
-* `./message.txt`: Contém a mensagem a ser cifrada com no máximo 2560 letras, contendo apenas letras maiúsculas, espaços, virgula e ponto. Letras inválidas serão consideradas ruídos.
-* `./key.txt`: Contém a chave de transposição de no máximo 8 caracteres.
+* `./src/message.txt`: Contém a mensagem a ser cifrada com no máximo 2560 letras, contendo apenas letras maiúsculas, espaços, virgula e ponto. Letras inválidas serão consideradas ruídos.
+* `./src/key.txt`: Contém a chave de transposição de no máximo 8 caracteres.
 
 ### 📄 Saída Gerada
 
-* `./encrypted.txt`: Resultado da cifragem ADFGVX, um texto com o dobro do tamanho da mensagem original, contendo apenas os caracteres ADFGVX.
+* `./src/encrypted.txt`: Resultado da cifragem ADFGVX, um texto com o dobro do tamanho da mensagem original, contendo apenas os caracteres ADFGVX.
 
 ### 🧪 Exemplo
 
-**Mensagem de entrada (`message.txt`):**
+**Mensagem de entrada (`./src/message.txt`):**
 
 ```txt
 LUCAS
 ```
 
-**Chave (`key.txt`):**
+**Chave (`/src/key.txt`):**
 
 ```txt
 UM
 ```
 
-**Saída cifrada (`encrypted.txt`):**
+**Saída cifrada (`./src/encrypted.txt`):**
 
 ```txt
 XFFAADGAAG
@@ -39,15 +39,20 @@ XFFAADGAAG
 
 ## ✅ Procedimentos de Teste
 
-O arquivo `./main_test.c` contém testes automatizados que validam o funcionamento da cifra e decifra.
+O arquivo `./src/main_test.c` contém testes automatizados que validam o funcionamento da cifra e decifra.
 
 ### 🔬 Testes disponíveis
 
-| Teste                      | Descrição                                                           |
-| -------------------------- | ------------------------------------------------------------------- |
-| `test_decipher()`          | Verifica se uma mensagem cifrada pode ser decifrada corretamente.   |
-| `test_execution_time()`    | Mede o tempo de execução da cifra para avaliação de desempenho.     |
-| `test_invalid_character()` | Testa o comportamento com caracteres inválidos (ex: `@`, `!`, etc). |
+| Teste                                   | Descrição                                                           |
+| --------------------------------------- | ------------------------------------------------------------------- |
+| `test_decipher()`                       | Verifica se uma mensagem cifrada pode ser decifrada corretamente.   |
+| `test_execution_time()`                 | Mede o tempo de execução da cifra para avaliação de desempenho.     |
+| `test_invalid_character()`              | Testa o comportamento com caracteres inválidos (ex: `@`, `!`, etc). |
+| `test_get_adfgvx_symbols()`             | Verifica se a função retorna os pares de símbolos esperados.        |
+| `test_insert_symbol_to_column()`        | Garante que os símbolos sejam inseridos corretamente nas colunas.   |
+| `test_polybius_encode_to_columns()`     | Testa a distribuição dos pares ADFGVX entre as colunas.             |
+| `test_transpose_columns_by_key_order()` | Verifica se as colunas são reordenadas corretamente.                |
+
 
 ## 🧱 Estruturas de Dados Utilizadas
 
