@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "cppbuild",
+      "label": "C/C++: clang build to dist folder",
+      "command": "/usr/bin/clang",
+      "args": [
+        "-fcolor-diagnostics",
+        "-fansi-escape-codes",
+        "-g",
+        "${file}",
+        "-o",
+        "${workspaceFolder}/dist/${fileBasenameNoExtension}"
+      ],
+      "options": {
+        "cwd": "${fileDirname}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "detail": "Builds C file into the dist folder."
+    }
+  ]
+}
