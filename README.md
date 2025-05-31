@@ -46,12 +46,12 @@ O arquivo `./src/main_test.c` contém testes automatizados que validam o funcion
 | Teste                                   | Descrição                                                           |
 | --------------------------------------- | ------------------------------------------------------------------- |
 | `test_decipher()`                       | Verifica se uma mensagem cifrada pode ser decifrada corretamente.   |
-| `test_execution_time()`                 | Mede o tempo de execução da cifra para avaliação de desempenho.     |
 | `test_invalid_character()`              | Testa o comportamento com caracteres inválidos (ex: `@`, `!`, etc). |
 | `test_get_adfgvx_symbols()`             | Verifica se a função retorna os pares de símbolos esperados.        |
 | `test_insert_symbol_to_column()`        | Garante que os símbolos sejam inseridos corretamente nas colunas.   |
 | `test_polybius_encode_to_columns()`     | Testa a distribuição dos pares ADFGVX entre as colunas.             |
 | `test_transpose_columns_by_key_order()` | Verifica se as colunas são reordenadas corretamente.                |
+| `test_execution_time()`                 | Mede o tempo de execução da cifra para avaliação de desempenho.     |
 
 
 ## 🧱 Estruturas de Dados Utilizadas

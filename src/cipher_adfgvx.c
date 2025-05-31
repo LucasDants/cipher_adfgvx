@@ -1,3 +1,30 @@
+/**
+ * Aplicação: Criptografia ADFGVX
+ *
+ * Licença: MIT License.
+ *
+ * Como usar:
+ * - Compile: gcc ./src/cipher_adfgvx.c -o cipher_adfgvx
+ * - Change: Mude os arquivos de entrada conforme o necessário.
+ * - Execute: ./src/cipher_adfgvx
+ *
+ * Dados de entrada e saída:
+ * - Entrada: 
+ *    Arquivo "./src/message.txt" contendo a mensagem a ser cifrada em MAIÚSCULAS, podendo haver espaços, vírgula e ponto. 
+ *    Arquivo "./src/key.txt" contendo a chave de transposição (até 8 caracteres).
+ * - Saída: 
+ *    Arquivo "./src/encrypted.txt" com a mensagem cifrada, onde cada caractere é um símbolo ADFGVX (A, D, F, G, V, X) representando pares de caracteres da matriz Polybius.
+ * Autores:
+ * - Lucas Dantas
+ * - Marcus Vinicius
+ * 
+ * Data: 2025-06
+ *
+ * Contexto: Trabalho da disciplina de Sistemas Embarcados do IFCE.
+ *
+ * Plataforma alvo: Microprocessadores com suporte a código C.
+ */
+
 #include <stdio.h>
 #include <string.h>
 
@@ -72,7 +99,7 @@ void insert_symbol_to_column(int key_length, char symbol, int *symbol_count, cha
 {
   int col_index = (*symbol_count) % key_length;
   int write_pos = symbols_per_column[col_index];
-
+ 
   encoded_symbol_matrix[col_index][write_pos] = symbol;
   symbols_per_column[col_index]++;
   (*symbol_count)++;
@@ -93,6 +120,7 @@ void polybius_encode_to_columns(int key_length, char message[], char encoded_sym
   {
     char row, col;
 
+    // Ignora caracteres que não estão na matriz Polybius
     if (!get_adfgvx_symbols(message[i], &row, &col))
     {
       continue;
@@ -190,7 +218,7 @@ int main()
 {
   FILE *message_file, *encrypted_file, *key_file;
   char cipher_key[MAX_KEY_LENGTH], message[MAX_MESSAGE_LENGTH];
-  int symbols_per_column[MAX_KEY_LENGTH] = {0};
+  int symbols_per_column[MAX_KEY_LENGTH] = {0}; // Contador de símbolos ADFGVX por coluna
   int KEY_LENGTH = 0;
   int is_file_read, i, j;
 
@@ -206,7 +234,7 @@ int main()
   KEY_LENGTH = strlen(cipher_key);
 
   // Define variáveis que dependem do tamanho da chave
-  char encoded_symbol_matrix[KEY_LENGTH][MAX_MESSAGE_LENGTH];
+  char encoded_symbol_matrix[KEY_LENGTH][MAX_MESSAGE_LENGTH]; // Matriz para armazenar os símbolos ADFGVX organizados por coluna, alterado pela cifra, em todos os estágios
 
   // Ler a messagem
   is_file_read = read_file("./message.txt", message, MAX_MESSAGE_LENGTH);
