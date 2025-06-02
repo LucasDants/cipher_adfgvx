@@ -4,20 +4,20 @@
  * Licença: MIT License.
  *
  * Como usar:
- * - Compile: gcc ./src/cipher_adfgvx.c -o cipher_adfgvx
+ * - Compile: gcc -std=c99 ./cipher_adfgvx.c -o cipher_adfgvx
  * - Change: Mude os arquivos de entrada conforme o necessário.
- * - Execute: ./src/cipher_adfgvx
+ * - Execute: ./cipher_adfgvx
  *
  * Dados de entrada e saída:
- * - Entrada: 
- *    Arquivo "./src/message.txt" contendo a mensagem a ser cifrada em MAIÚSCULAS, podendo haver espaços, vírgula e ponto. 
- *    Arquivo "./src/key.txt" contendo a chave de transposição (até 8 caracteres).
- * - Saída: 
- *    Arquivo "./src/encrypted.txt" com a mensagem cifrada, onde cada caractere é um símbolo ADFGVX (A, D, F, G, V, X) representando pares de caracteres da matriz Polybius.
+ * - Entrada:
+ *    Arquivo "./message.txt" contendo a mensagem a ser cifrada em MAIÚSCULAS, podendo haver espaços, vírgula e ponto.
+ *    Arquivo "./key.txt" contendo a chave de transposição (até 8 caracteres).
+ * - Saída:
+ *    Arquivo "./encrypted.txt" com a mensagem cifrada, onde cada caractere é um símbolo ADFGVX (A, D, F, G, V, X) representando pares de caracteres da matriz Polybius.
  * Autores:
  * - Lucas Dantas
  * - Marcus Vinicius
- * 
+ *
  * Data: 2025-06
  *
  * Contexto: Trabalho da disciplina de Sistemas Embarcados do IFCE.
@@ -90,16 +90,17 @@ int get_adfgvx_symbols(char c, char *row, char *col)
 /**
  * @brief Insere um símbolo ADFGVX na matriz de colunas.
  * @param key_length Comprimento da chave.
+ * @param max_per_column Número máximo de posições em cada coluna (para VLA).
  * @param symbol Símbolo a ser inserido (row ou col).
  * @param symbol_count Contador global de símbolos (será incrementado).
  * @param encoded_symbol_matrix Matriz de saída contendo os símbolos organizados por coluna.
  * @param symbols_per_column Vetor com a quantidade de símbolos por coluna (será atualizado).
  */
-void insert_symbol_to_column(int key_length, char symbol, int *symbol_count, char encoded_symbol_matrix[][MAX_MESSAGE_LENGTH], int symbols_per_column[])
+void insert_symbol_to_column(int key_length, int max_per_column, char symbol, int *symbol_count, char encoded_symbol_matrix[key_length][max_per_column], int symbols_per_column[])
 {
   int col_index = (*symbol_count) % key_length;
   int write_pos = symbols_per_column[col_index];
- 
+
   encoded_symbol_matrix[col_index][write_pos] = symbol;
   symbols_per_column[col_index]++;
   (*symbol_count)++;
@@ -108,11 +109,12 @@ void insert_symbol_to_column(int key_length, char symbol, int *symbol_count, cha
 /**
  * @brief Converte a mensagem em colunas de símbolos ADFGVX para cifra por transposição.
  * @param key_length Comprimento da chave.
+ * @param max_per_column Número máximo de posições em cada coluna (para VLA).
  * @param message Mensagem original a ser cifrada.
  * @param encoded_symbol_matrix Matriz onde os símbolos cifrados serão armazenados por coluna.
  * @param symbols_per_column Vetor que armazena o número de elementos em cada coluna.
  */
-void polybius_encode_to_columns(int key_length, char message[], char encoded_symbol_matrix[][MAX_MESSAGE_LENGTH], int symbols_per_column[])
+void polybius_encode_to_columns(int key_length, int max_per_column, char message[], char encoded_symbol_matrix[key_length][max_per_column], int symbols_per_column[])
 {
   int i, symbol_count = 0;
 
@@ -126,8 +128,8 @@ void polybius_encode_to_columns(int key_length, char message[], char encoded_sym
       continue;
     }
 
-    insert_symbol_to_column(key_length, row, &symbol_count, encoded_symbol_matrix, symbols_per_column);
-    insert_symbol_to_column(key_length, col, &symbol_count, encoded_symbol_matrix, symbols_per_column);
+    insert_symbol_to_column(key_length, max_per_column, row, &symbol_count, encoded_symbol_matrix, symbols_per_column);
+    insert_symbol_to_column(key_length, max_per_column, col, &symbol_count, encoded_symbol_matrix, symbols_per_column);
   }
 }
 
@@ -135,10 +137,11 @@ void polybius_encode_to_columns(int key_length, char message[], char encoded_sym
  * @brief Reorganiza as colunas da matriz com base na ordem alfabética da chave.
  * @param key A chave usada na transposição (array de caracteres).
  * @param key_length Comprimento da chave.
+ * @param max_per_column Número máximo de posições em cada coluna (para VLA).
  * @param encoded_symbol_matrix Matriz com os dados cifrados por colunas.
  * @param symbols_per_column Vetor com o número de elementos em cada coluna.
  */
-void transpose_columns_by_key_order(char key[], int key_length, char encoded_symbol_matrix[][MAX_MESSAGE_LENGTH], int symbols_per_column[])
+void transpose_columns_by_key_order(char key[], int key_length, int max_per_column, char encoded_symbol_matrix[key_length][max_per_column], int symbols_per_column[])
 {
   int i, j, k;
   char sorted_key[key_length];
@@ -162,8 +165,8 @@ void transpose_columns_by_key_order(char key[], int key_length, char encoded_sym
         sorted_key[j] = sorted_key[j + 1];
         sorted_key[j + 1] = tmp;
 
-        // Troca símbolo por símbolo das colunas associadas
-        for (k = 0; k < MAX_MESSAGE_LENGTH; k++)
+        // Troca símbolo por símbolo das colunas associadas (até max_per_column)
+        for (k = 0; k < max_per_column; k++)
         {
           char temp = encoded_symbol_matrix[j][k];
           encoded_symbol_matrix[j][k] = encoded_symbol_matrix[j + 1][k];
@@ -183,14 +186,15 @@ void transpose_columns_by_key_order(char key[], int key_length, char encoded_sym
  * @brief Aplica a cifra ADFGVX: codifica os símbolos e faz a transposição das colunas.
  * @param key A chave usada na transposição (array de caracteres).
  * @param key_length Comprimento da chave.
+ * @param max_per_column Número máximo de posições em cada coluna (para VLA).
  * @param message Mensagem de entrada.
  * @param encoded_symbol_matrix Matriz onde os símbolos codificados serão armazenados.
  * @param symbols_per_column Vetor com a contagem de elementos em cada coluna.
  */
-void cipher_adfgvx(char key[], int key_length, char message[], char encoded_symbol_matrix[][MAX_MESSAGE_LENGTH], int symbols_per_column[])
+void cipher_adfgvx(char key[], int key_length, int max_per_column, char message[], char encoded_symbol_matrix[key_length][max_per_column], int symbols_per_column[])
 {
-  polybius_encode_to_columns(key_length, message, encoded_symbol_matrix, symbols_per_column);
-  transpose_columns_by_key_order(key, key_length, encoded_symbol_matrix, symbols_per_column);
+  polybius_encode_to_columns(key_length, max_per_column, message, encoded_symbol_matrix, symbols_per_column);
+  transpose_columns_by_key_order(key, key_length, max_per_column, encoded_symbol_matrix, symbols_per_column);
 }
 
 /**
@@ -216,49 +220,47 @@ void cipher_adfgvx(char key[], int key_length, char message[], char encoded_symb
  */
 int main()
 {
-  FILE *message_file, *encrypted_file, *key_file;
   char cipher_key[MAX_KEY_LENGTH], message[MAX_MESSAGE_LENGTH];
   int symbols_per_column[MAX_KEY_LENGTH] = {0}; // Contador de símbolos ADFGVX por coluna
-  int KEY_LENGTH = 0;
-  int is_file_read, i, j;
 
   // Lê a chave de cifra do arquivo
-  is_file_read = read_file("./key.txt", cipher_key, MAX_KEY_LENGTH);
-  if (is_file_read != 0)
+  if (read_file("./key.txt", cipher_key, MAX_KEY_LENGTH) != 0)
   {
-    perror("Error reading file './key.txt'.\n");
+    perror("Error reading file './key.txt'.");
     return 1;
   }
 
   // Define o tamanho da chave com base no conteúdo lido
-  KEY_LENGTH = strlen(cipher_key);
+  int key_length = strlen(cipher_key);
 
-  // Define variáveis que dependem do tamanho da chave
-  char encoded_symbol_matrix[KEY_LENGTH][MAX_MESSAGE_LENGTH]; // Matriz para armazenar os símbolos ADFGVX organizados por coluna, alterado pela cifra, em todos os estágios
+  // Calcula quantos símbolos cada coluna precisará no pior caso (VLA)
+  int max_per_column = (2 * MAX_MESSAGE_LENGTH + key_length - 1) / key_length;
 
-  // Ler a messagem
-  is_file_read = read_file("./message.txt", message, MAX_MESSAGE_LENGTH);
-  if (is_file_read != 0)
+  // Declara VLA para armazenar os símbolos por coluna
+  char encoded_symbol_matrix[key_length][max_per_column];
+
+  // Lê a mensagem
+  if (read_file("./message.txt", message, MAX_MESSAGE_LENGTH) != 0)
   {
-    perror("Error reading file './message.txt'.\n");
+    perror("Error reading file './message.txt'.");
     return 1;
   }
 
   // Realizar a cifra ADFGVX
-  cipher_adfgvx(cipher_key, KEY_LENGTH, message, encoded_symbol_matrix, symbols_per_column);
+  cipher_adfgvx(cipher_key, key_length, max_per_column, message, encoded_symbol_matrix, symbols_per_column);
 
   // Salvar a mensagem cifrada em 'encrypted.txt'
-  encrypted_file = fopen("./encrypted.txt", "w");
+  FILE *encrypted_file = fopen("./encrypted.txt", "w");
   if (encrypted_file == NULL)
   {
-    perror("Error opening './encrypted.txt'.\n");
+    perror("Error opening './encrypted.txt'.");
     return 1;
   }
 
   // Escrever as colunas ordenadas no arquivo cifrado
-  for (i = 0; i < KEY_LENGTH; i++)
+  for (int i = 0; i < key_length; i++)
   {
-    for (j = 0; j < symbols_per_column[i]; j++)
+    for (int j = 0; j < symbols_per_column[i]; j++)
     {
       fputc(encoded_symbol_matrix[i][j], encrypted_file);
     }

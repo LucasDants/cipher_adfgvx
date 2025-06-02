@@ -6,6 +6,20 @@
 #define MAX_MESSAGE_LENGTH 2560
 #define MAX_KEY_LENGTH 9
 
+int read_file(const char *filename, char *buffer, int max_length)
+{
+  FILE *file = fopen(filename, "r");
+  if (file == NULL)
+  {
+    return 1;
+  }
+
+  fgets(buffer, max_length, file);
+
+  fclose(file);
+  return 0;
+}
+
 const char symbols[6] = {'A', 'D', 'F', 'G', 'V', 'X'};
 const char square[6][6] = {
     {'A', 'B', 'C', 'D', 'E', 'F'},
@@ -27,124 +41,129 @@ const char square[6][6] = {
  */
 int get_adfgvx_symbols(char c, char *row, char *col)
 {
-    for (int i = 0; i < 6; i++)
+  for (int i = 0; i < 6; i++)
+  {
+    for (int j = 0; j < 6; j++)
     {
-        for (int j = 0; j < 6; j++)
-        {
-            if (square[i][j] == c)
-            {
-                *row = symbols[i];
-                *col = symbols[j];
-                return 1;
-            }
-        }
+      if (square[i][j] == c)
+      {
+        *row = symbols[i];
+        *col = symbols[j];
+        return 1;
+      }
     }
-    return 0;
+  }
+  return 0;
 }
 
 /**
  * @brief Insere um símbolo ADFGVX na matriz de colunas.
  * @param key_length Comprimento da chave.
+ * @param max_per_column Número máximo de posições em cada coluna (para VLA).
  * @param symbol Símbolo a ser inserido (row ou col).
  * @param symbol_count Contador global de símbolos (será incrementado).
  * @param encoded_symbol_matrix Matriz de saída contendo os símbolos organizados por coluna.
  * @param symbols_per_column Vetor com a quantidade de símbolos por coluna (será atualizado).
  */
-void insert_symbol_to_column(int key_length, char symbol, int *symbol_count, char encoded_symbol_matrix[][MAX_MESSAGE_LENGTH], int symbols_per_column[])
+void insert_symbol_to_column(int key_length, int max_per_column, char symbol, int *symbol_count, char encoded_symbol_matrix[key_length][max_per_column], int symbols_per_column[])
 {
-    int col_index = (*symbol_count) % key_length;
-    int write_pos = symbols_per_column[col_index];
+  int col_index = (*symbol_count) % key_length;
+  int write_pos = symbols_per_column[col_index];
 
-    encoded_symbol_matrix[col_index][write_pos] = symbol;
-    symbols_per_column[col_index]++;
-    (*symbol_count)++;
+  encoded_symbol_matrix[col_index][write_pos] = symbol;
+  symbols_per_column[col_index]++;
+  (*symbol_count)++;
 }
 
 /**
  * @brief Converte a mensagem em colunas de símbolos ADFGVX para cifra por transposição.
  * @param key_length Comprimento da chave.
+ * @param max_per_column Número máximo de posições em cada coluna (para VLA).
  * @param message Mensagem original a ser cifrada.
  * @param encoded_symbol_matrix Matriz onde os símbolos cifrados serão armazenados por coluna.
  * @param symbols_per_column Vetor que armazena o número de elementos em cada coluna.
  */
-void polybius_encode_to_columns(int key_length, char message[], char encoded_symbol_matrix[][MAX_MESSAGE_LENGTH], int symbols_per_column[])
+void polybius_encode_to_columns(int key_length, int max_per_column, char message[], char encoded_symbol_matrix[key_length][max_per_column], int symbols_per_column[])
 {
-    int i, symbol_count = 0;
+  int i, symbol_count = 0;
 
-    for (i = 0; message[i] != '\0'; i++)
+  for (i = 0; message[i] != '\0'; i++)
+  {
+    char row, col;
+
+    // Ignora caracteres que não estão na matriz Polybius
+    if (!get_adfgvx_symbols(message[i], &row, &col))
     {
-        char row, col;
-
-        if (!get_adfgvx_symbols(message[i], &row, &col))
-        {
-            continue;
-        }
-
-        insert_symbol_to_column(key_length, row, &symbol_count, encoded_symbol_matrix, symbols_per_column);
-        insert_symbol_to_column(key_length, col, &symbol_count, encoded_symbol_matrix, symbols_per_column);
+      continue;
     }
+
+    insert_symbol_to_column(key_length, max_per_column, row, &symbol_count, encoded_symbol_matrix, symbols_per_column);
+    insert_symbol_to_column(key_length, max_per_column, col, &symbol_count, encoded_symbol_matrix, symbols_per_column);
+  }
 }
 
 /**
  * @brief Reorganiza as colunas da matriz com base na ordem alfabética da chave.
  * @param key A chave usada na transposição (array de caracteres).
  * @param key_length Comprimento da chave.
+ * @param max_per_column Número máximo de posições em cada coluna (para VLA).
  * @param encoded_symbol_matrix Matriz com os dados cifrados por colunas.
  * @param symbols_per_column Vetor com o número de elementos em cada coluna.
  */
-void transpose_columns_by_key_order(char key[], int key_length, char encoded_symbol_matrix[][MAX_MESSAGE_LENGTH], int symbols_per_column[])
+void transpose_columns_by_key_order(char key[], int key_length, int max_per_column, char encoded_symbol_matrix[key_length][max_per_column], int symbols_per_column[])
 {
-    int i, j, k;
-    char sorted_key[key_length];
-    int temp_count;
+  int i, j, k;
+  char sorted_key[key_length];
+  int temp_count;
 
-    // Copia a chave original para preservar sua ordem
-    for (i = 0; i < key_length; i++)
-    {
-        sorted_key[i] = key[i];
-    }
+  // Copia a chave original para preservar sua ordem
+  for (i = 0; i < key_length; i++)
+  {
+    sorted_key[i] = key[i];
+  }
 
-    // Ordenação da chave e reorganização das colunas
-    for (i = 0; i < key_length - 1; i++)
+  // Ordenação da chave e reorganização das colunas
+  for (i = 0; i < key_length - 1; i++)
+  {
+    for (j = 0; j < key_length - i - 1; j++)
     {
-        for (j = 0; j < key_length - i - 1; j++)
+      if (sorted_key[j] > sorted_key[j + 1])
+      {
+        // Troca os caracteres da chave ordenada
+        char tmp = sorted_key[j];
+        sorted_key[j] = sorted_key[j + 1];
+        sorted_key[j + 1] = tmp;
+
+        // Troca símbolo por símbolo das colunas associadas (até max_per_column)
+        for (k = 0; k < max_per_column; k++)
         {
-            if (sorted_key[j] > sorted_key[j + 1])
-            {
-                // Troca os caracteres da chave ordenada
-                char tmp = sorted_key[j];
-                sorted_key[j] = sorted_key[j + 1];
-                sorted_key[j + 1] = tmp;
-
-                // Troca símbolo por símbolo das colunas associadas
-                for (k = 0; k < MAX_MESSAGE_LENGTH; k++)
-                {
-                    char temp = encoded_symbol_matrix[j][k];
-                    encoded_symbol_matrix[j][k] = encoded_symbol_matrix[j + 1][k];
-                    encoded_symbol_matrix[j + 1][k] = temp;
-                }
-
-                // Troca o contador de elementos de cada coluna
-                temp_count = symbols_per_column[j];
-                symbols_per_column[j] = symbols_per_column[j + 1];
-                symbols_per_column[j + 1] = temp_count;
-            }
+          char temp = encoded_symbol_matrix[j][k];
+          encoded_symbol_matrix[j][k] = encoded_symbol_matrix[j + 1][k];
+          encoded_symbol_matrix[j + 1][k] = temp;
         }
+
+        // Troca o contador de elementos de cada coluna
+        temp_count = symbols_per_column[j];
+        symbols_per_column[j] = symbols_per_column[j + 1];
+        symbols_per_column[j + 1] = temp_count;
+      }
     }
+  }
 }
 
 /**
  * @brief Aplica a cifra ADFGVX: codifica os símbolos e faz a transposição das colunas.
  * @param key A chave usada na transposição (array de caracteres).
  * @param key_length Comprimento da chave.
+ * @param max_per_column Número máximo de posições em cada coluna (para VLA).
  * @param message Mensagem de entrada.
  * @param encoded_symbol_matrix Matriz onde os símbolos codificados serão armazenados.
  * @param symbols_per_column Vetor com a contagem de elementos em cada coluna.
  */
-void cipher_adfgvx(char key[], int key_length, char message[], char encoded_symbol_matrix[][MAX_MESSAGE_LENGTH], int symbols_per_column[])
+void cipher_adfgvx(char key[], int key_length, int max_per_column, char message[], char encoded_symbol_matrix[key_length][max_per_column], int symbols_per_column[])
 {
-    polybius_encode_to_columns(key_length, message, encoded_symbol_matrix, symbols_per_column);
-    transpose_columns_by_key_order(key, key_length, encoded_symbol_matrix, symbols_per_column);
+  polybius_encode_to_columns(key_length, max_per_column, message, encoded_symbol_matrix, symbols_per_column);
+  transpose_columns_by_key_order(key, key_length, max_per_column, encoded_symbol_matrix, symbols_per_column);
 }
 // ! END CIPHER FUNCTIONS
 
@@ -348,14 +367,16 @@ void test_get_adfgvx_symbols()
  */
 void test_insert_symbol_to_column()
 {
+    int key_length = 3;
+    int max_per_column = MAX_MESSAGE_LENGTH;
     char matrix[3][MAX_MESSAGE_LENGTH] = {{0}};
     int symbols_per_column[3] = {0};
     int symbol_count = 0;
 
-    insert_symbol_to_column(3, 'X', &symbol_count, matrix, symbols_per_column);
-    insert_symbol_to_column(3, 'F', &symbol_count, matrix, symbols_per_column);
-    insert_symbol_to_column(3, 'A', &symbol_count, matrix, symbols_per_column);
-    insert_symbol_to_column(3, 'G', &symbol_count, matrix, symbols_per_column);
+    insert_symbol_to_column(key_length, max_per_column, 'X', &symbol_count, matrix, symbols_per_column);
+    insert_symbol_to_column(key_length, max_per_column, 'F', &symbol_count, matrix, symbols_per_column);
+    insert_symbol_to_column(key_length, max_per_column, 'A', &symbol_count, matrix, symbols_per_column);
+    insert_symbol_to_column(key_length, max_per_column, 'G', &symbol_count, matrix, symbols_per_column);
 
     if (matrix[0][0] == 'X' && matrix[1][0] == 'F' && matrix[2][0] == 'A' && matrix[0][1] == 'G')
     {
@@ -374,11 +395,13 @@ void test_insert_symbol_to_column()
  */
 void test_polybius_encode_to_columns()
 {
+    int key_length = 2;
+    int max_per_column = MAX_MESSAGE_LENGTH;
     char message[] = "AB";
     char matrix[2][MAX_MESSAGE_LENGTH] = {{0}};
     int symbols_per_column[2] = {0};
 
-    polybius_encode_to_columns(2, message, matrix, symbols_per_column);
+    polybius_encode_to_columns(key_length, max_per_column, message, matrix, symbols_per_column);
 
     if (symbols_per_column[0] == 2 && symbols_per_column[1] == 2)
     {
@@ -399,6 +422,7 @@ void test_transpose_columns_by_key_order()
 {
     char key[] = "CAB"; // ordem alfabética: A B C -> índices 2 1 0
     int key_length = 3;
+    int max_per_column = MAX_MESSAGE_LENGTH;
 
     char matrix[3][MAX_MESSAGE_LENGTH] = {
         {'C', '1', '2'},
@@ -406,7 +430,7 @@ void test_transpose_columns_by_key_order()
         {'B', '5', '6'}};
     int symbols_per_column[3] = {3, 3, 3};
 
-    transpose_columns_by_key_order(key, key_length, matrix, symbols_per_column);
+    transpose_columns_by_key_order(key, key_length, max_per_column, matrix, symbols_per_column);
 
     if (matrix[0][0] == 'A' && matrix[1][0] == 'B' && matrix[2][0] == 'C')
     {
@@ -428,11 +452,14 @@ void test_transpose_columns_by_key_order()
 void test_decipher(char key[], char original_message[])
 {
     int key_length = strlen(key);
-    char encoded_symbol_matrix[key_length][MAX_MESSAGE_LENGTH];
+    int max_per_column = (2 * MAX_MESSAGE_LENGTH + key_length - 1) / key_length;
+
+    // Declara VLA para armazenar os símbolos por coluna
+    char encoded_symbol_matrix[key_length][max_per_column];
     int symbols_per_column[MAX_KEY_LENGTH] = {0};
 
     // Cifrar a mensagem
-    cipher_adfgvx(key, key_length, original_message, encoded_symbol_matrix, symbols_per_column);
+    cipher_adfgvx(key, key_length, max_per_column, original_message, encoded_symbol_matrix, symbols_per_column);
 
     // Linearizar mensagem cifrada
     char encrypted[2 * MAX_MESSAGE_LENGTH];
@@ -476,11 +503,12 @@ void test_execution_time()
     memset(long_message, 'A', MAX_MESSAGE_LENGTH - 1);
     long_message[MAX_MESSAGE_LENGTH - 1] = '\0';
 
+    int max_per_column = MAX_MESSAGE_LENGTH;
     char encoded_symbol_matrix[MAX_KEY_LENGTH][MAX_MESSAGE_LENGTH];
     int symbols_per_column[MAX_KEY_LENGTH] = {0};
 
     clock_t start = clock();
-    cipher_adfgvx(key, key_length, long_message, encoded_symbol_matrix, symbols_per_column);
+    cipher_adfgvx(key, key_length, max_per_column, long_message, encoded_symbol_matrix, symbols_per_column);
     clock_t end = clock();
 
     double elapsed = (double)(end - start) / CLOCKS_PER_SEC;
@@ -504,12 +532,13 @@ void test_invalid_character()
     char key[] = "UM";
     int key_length = strlen(key);
     char message[] = "L#UC%AS@!d";
+    int max_per_column = MAX_MESSAGE_LENGTH;
     char encoded_symbol_matrix[MAX_KEY_LENGTH][MAX_MESSAGE_LENGTH];
     int symbols_per_column[MAX_KEY_LENGTH] = {0};
 
     const char expected_cipher[] = "XFFAADGAAG";
 
-    cipher_adfgvx(key, key_length, message, encoded_symbol_matrix, symbols_per_column);
+    cipher_adfgvx(key, key_length, max_per_column, message, encoded_symbol_matrix, symbols_per_column);
 
     // Construir a mensagem cifrada linearizada
     char actual_cipher[MAX_MESSAGE_LENGTH] = {0};
@@ -529,11 +558,11 @@ void test_invalid_character()
 
     if (strcmp(actual_cipher, expected_cipher) == 0)
     {
-        printf("\tSucesso: Caracteres foram ignorados e a cifragem esta correta.\n");
+        printf("\tSucesso: Caracteres foram ignorados e a cifragem está correta.\n");
     }
     else
     {
-        printf("\tErro: A mensagem cifrada esta errada.\n");
+        printf("\tErro: A mensagem cifrada está errada.\n");
     }
 }
 
@@ -544,10 +573,10 @@ int main()
 {
     printf("Executando testes do algoritmo ADFGVX...\n");
 
-    printf("\n-> Teste: get_adfgvx_symbols\n");
+    printf("\n-> Teste: get_adfgvx_symbols get C and reject get #\n");
     test_get_adfgvx_symbols();
 
-    printf("\n-> Teste: insert_symbol_to_column\n");
+    printf("\n-> Teste: insert_symbol_to_column insert symbol correctly in the column\n");
     test_insert_symbol_to_column();
 
     printf("\n-> Teste: polybius_encode_to_columns\n");
@@ -558,6 +587,21 @@ int main()
 
     printf("\n-> Teste: Decrypting with known encrypting XFFAADGAAG \n");
     test_decipher("UM", "LUCAS");
+
+    char message[MAX_MESSAGE_LENGTH] = {0};
+    // Ler a messagem
+    int is_file_read = read_file("./message.txt", message, MAX_MESSAGE_LENGTH);
+    if (is_file_read != 0)
+    {
+        perror("Error reading file './message.txt'.");
+        return 1;
+    }
+
+    printf("\n-> Teste: Decrypting encrypted file \n");
+    test_decipher("SEMB2025", message);
+
+    printf("\n-> Teste: Decrypting with medium text \n");
+    test_decipher("SEMB2025", "LOREM IPSUM DOLOR SIT AMET, COMMODO VOLUTPAT. CURABITUR HENDRERIT CURSUS JUSTO, EGET PHARETRA TELLUS VULPUTATE QUIS. PELLENTESQUE ET JUSTO LEO. MAECENAS A EGESTAS ENIM, AC ULTRICES RISUS. UT ET PLACERAT MASSA. LOREM IPSUM DOLOR SIT AMET, CONSECTETUR ADIPISCING ELIT. INTEGER FRINGILLA FINIBUS AUGUE ID SODALES. NULLAM NON FAUCIBUS ANTE. IN PORTTITOR, NIBH ET MATTIS FERMENTUM, VELIT SAPIEN ULLAMCORPER AUGUE, NEC EGESTAS EROS ARCU ID SEM. PELLENTESQUE EU FRINGILLA EX, ID BLANDIT TURPIS. QUISQUE ELIT DOLOR, PORTTITOR A SAPIEN VITAE, MOLESTIE DICTUM TELLUS. SED CONSECTETUR EST NIBH, UT DICTUM EROS EGESTAS SIT AMET. SUSPENDISSE GRAVIDA NEQUE NISL, AT PORTTITOR URNA PORTTITOR ID. NUNC SIT AMET SAPIEN MI. SED POSUERE BLANDIT ENIM AC LUCTUS. PHASELLUS FACILISIS EGET ODIO AC POSUERE. DUIS RUTRUM BIBENDUM ODIO, VITAE VARIUS IPSUM LACINIA A. CRAS QUIS PRETIUM ANTE. DUIS AT AUGUE UT DUI ORNARE MAXIMUS. UT ID LIGULA SED ELIT CONSEQUAT PRETIUM PULVINAR A NISI. PELLENTESQUE DAPIBUS FEUGIAT MAURIS, VEL EGESTAS TORTOR IMPERDIET NON. DONEC TRISTIQUE MASSA NEC EX ELEIFEND VESTIBULUM. VIVAMUS MATTIS SIT AMET VELIT VEL FACILISIS. NULLA FACILISI. DONEC COMMODO QUAM EGET TINCIDUNT HENDRERIT. PROIN MASSA PURUS, CONSECTETUR AC EGESTAS ET, FINIBUS A NEQUE. MAURIS VEL GRAVIDA NISI, ID ELEMENTUM DIAM. SED UT MI LECTUS. AENEAN SCELERISQUE IPSUM MAURIS, NON EUISMOD EST VEHICULA SIT AMET. ALIQUAM NON MAURIS LOREM. NULLA EGESTAS ID MI AC TEMPOR. MORBI A QUAM NON NUNC TEMPUS HENDRERIT. MORBI AT URNA IPSUM. PROIN RHONCUS AUCTOR PURUS AT VESTIBULUM. ETIAM ENIM IPSUM, TEMPUS VEL ELEMENTUM ET, FERMENTUM UT DUI. ETIAM AT QUAM SIT AMET NUNC TEMPUS CONSEQUAT IN ID IPSUM. INTEGER IN TEMPOR LACUS. QUISQUE TINCIDUNT LACINIA ERAT, SED TEMPOR VELIT LOBORTIS IN. PROIN LACINIA DOLOR ANTE, ET ULLAMCORPER ERAT PULVINAR A. MORBI SUSCIPIT DIGNISSIM EROS, UT EFFICITUR DIAM CONVALLIS NEC. INTEGER LAOREET MAURIS VEL TELLUS ELEMENTUM, QUIS PORTA FELIS GRAVIDA. UT AC PURUS QUIS NISI DICTUM CURSUS IN NEC PURUS. PELLENTESQUE A RUTRUM TURPIS, LAOREET LAOREET URNA. DONEC A TELLUS EGET LACUS ALIQUAM VOLUTPAT ID LAOREET SEM. MAURIS UT NEQUE FINIBUS, MATTIS LECTUS AT, VOLUTPAT ORCI. ALIQUAM ERAT VOLUTPAT. UT TINCIDUNT LIBERO IN ANTE PORTA, VITAE TEMPOR EROS RHONCUS. MAURIS ENIM TORTOR, PRETIUM IN ORCI ID, ULTRICES ALIQUET PURUS. NULLAM VEL CURSUS DUI. NAM PRETIUM ULLAMCORPER IPSUM ID CONSEQUAT. INTEGER A QUAM HENDRERIT, DAPIBUS METUS NEC.");
 
     printf("\n-> Teste: Decrypting with long text \n");
     test_decipher("SEMB2025", "LOREM IPSUM DOLOR SIT AMET, CONSECTETUR ADIPISCING ELIT. CURABITUR NISI EROS, MAXIMUS A FACILISIS ID, ACCUMSAN NEC TORTOR. MORBI FACILISIS MAGNA SIT AMET TURPIS COMMODO VOLUTPAT. CURABITUR HENDRERIT CURSUS JUSTO, EGET PHARETRA TELLUS VULPUTATE QUIS. PELLENTESQUE ET JUSTO LEO. MAECENAS A EGESTAS ENIM, AC ULTRICES RISUS. UT ET PLACERAT MASSA. LOREM IPSUM DOLOR SIT AMET, CONSECTETUR ADIPISCING ELIT. INTEGER FRINGILLA FINIBUS AUGUE ID SODALES. NULLAM NON FAUCIBUS ANTE. IN PORTTITOR, NIBH ET MATTIS FERMENTUM, VELIT SAPIEN ULLAMCORPER AUGUE, NEC EGESTAS EROS ARCU ID SEM. PELLENTESQUE EU FRINGILLA EX, ID BLANDIT TURPIS. QUISQUE ELIT DOLOR, PORTTITOR A SAPIEN VITAE, MOLESTIE DICTUM TELLUS. SED CONSECTETUR EST NIBH, UT DICTUM EROS EGESTAS SIT AMET. SUSPENDISSE GRAVIDA NEQUE NISL, AT PORTTITOR URNA PORTTITOR ID. NUNC SIT AMET SAPIEN MI. SED POSUERE BLANDIT ENIM AC LUCTUS. PHASELLUS FACILISIS EGET ODIO AC POSUERE. DUIS RUTRUM BIBENDUM ODIO, VITAE VARIUS IPSUM LACINIA A. CRAS QUIS PRETIUM ANTE. DUIS AT AUGUE UT DUI ORNARE MAXIMUS. UT ID LIGULA SED ELIT CONSEQUAT PRETIUM PULVINAR A NISI. PELLENTESQUE DAPIBUS FEUGIAT MAURIS, VEL EGESTAS TORTOR IMPERDIET NON. DONEC TRISTIQUE MASSA NEC EX ELEIFEND VESTIBULUM. VIVAMUS MATTIS SIT AMET VELIT VEL FACILISIS. NULLA FACILISI. DONEC COMMODO QUAM EGET TINCIDUNT HENDRERIT. PROIN MASSA PURUS, CONSECTETUR AC EGESTAS ET, FINIBUS A NEQUE. MAURIS VEL GRAVIDA NISI, ID ELEMENTUM DIAM. SED UT MI LECTUS. AENEAN SCELERISQUE IPSUM MAURIS, NON EUISMOD EST VEHICULA SIT AMET. ALIQUAM NON MAURIS LOREM. NULLA EGESTAS ID MI AC TEMPOR. MORBI A QUAM NON NUNC TEMPUS HENDRERIT. MORBI AT URNA IPSUM. PROIN RHONCUS AUCTOR PURUS AT VESTIBULUM. ETIAM ENIM IPSUM, TEMPUS VEL ELEMENTUM ET, FERMENTUM UT DUI. ETIAM AT QUAM SIT AMET NUNC TEMPUS CONSEQUAT IN ID IPSUM. INTEGER IN TEMPOR LACUS. QUISQUE TINCIDUNT LACINIA ERAT, SED TEMPOR VELIT LOBORTIS IN. PROIN LACINIA DOLOR ANTE, ET ULLAMCORPER ERAT PULVINAR A. MORBI SUSCIPIT DIGNISSIM EROS, UT EFFICITUR DIAM CONVALLIS NEC. INTEGER LAOREET MAURIS VEL TELLUS ELEMENTUM, QUIS PORTA FELIS GRAVIDA. UT AC PURUS QUIS NISI DICTUM CURSUS IN NEC PURUS. PELLENTESQUE A RUTRUM TURPIS, LAOREET LAOREET URNA. DONEC A TELLUS EGET LACUS ALIQUAM VOLUTPAT ID LAOREET SEM. MAURIS UT NEQUE FINIBUS, MATTIS LECTUS AT, VOLUTPAT ORCI. ALIQUAM ERAT VOLUTPAT. UT TINCIDUNT LIBERO IN ANTE PORTA, VITAE TEMPOR EROS RHONCUS. MAURIS ENIM TORTOR, PRETIUM IN ORCI ID, ULTRICES ALIQUET PURUS. NULLAM VEL CURSUS DUI. NAM PRETIUM ULLAMCORPER IPSUM ID CONSEQUAT. INTEGER A QUAM HENDRERIT, DAPIBUS METUS NEC.");
