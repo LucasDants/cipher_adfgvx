@@ -4,13 +4,15 @@
  * Licença: MIT License.
  *
  * Como usar:
- * - Compile: gcc -std=c99 ./cipher_adfgvx.c -o cipher_adfgvx
+ * - Create: Crie os arquivos "message.txt" e "key.txt" no mesmo diretório do código.
+ * - Compile Windows: gcc ./cipher_adfgvx.c -o cipher_adfgvx
+ * - Compile Mac: clang ./cipher_adfgvx.c -o cipher_adfgvx (pode ser necessário dar permissão para leitura/escrita de arquivos)
  * - Change: Mude os arquivos de entrada conforme o necessário.
  * - Execute: ./cipher_adfgvx
  *
  * Dados de entrada e saída:
  * - Entrada:
- *    Arquivo "./message.txt" contendo a mensagem a ser cifrada em MAIÚSCULAS, podendo haver espaços, vírgula e ponto.
+ *    Arquivo "./message.txt" contendo a mensagem a ser cifrada em MAIÚSCULAS, podendo haver espaços, vírgula e ponto. Caracteres fora da matriz Polybius serão ignorados.
  *    Arquivo "./key.txt" contendo a chave de transposição (até 8 caracteres).
  * - Saída:
  *    Arquivo "./encrypted.txt" com a mensagem cifrada, onde cada caractere é um símbolo ADFGVX (A, D, F, G, V, X) representando pares de caracteres da matriz Polybius.
@@ -233,10 +235,10 @@ int main()
   // Define o tamanho da chave com base no conteúdo lido
   int key_length = strlen(cipher_key);
 
-  // Calcula quantos símbolos cada coluna precisará no pior caso (VLA)
+  // Calcula quantos símbolos cada coluna precisará no pior caso, fazendo um ceil para truncar para cima
   int max_per_column = (2 * MAX_MESSAGE_LENGTH + key_length - 1) / key_length;
 
-  // Declara VLA para armazenar os símbolos por coluna
+  // Armazenar os símbolos após criptografia, e é utilizada na transposição para dar o resultado final
   char encoded_symbol_matrix[key_length][max_per_column];
 
   // Lê a mensagem
@@ -246,7 +248,8 @@ int main()
     return 1;
   }
 
-  // Realizar a cifra ADFGVX
+  // Realizar a cifra ADFGVX, não cria nenhuma estrutura de dados adicional grande, utiliza apenas alguns controladores inteiros e a copia da key para ordenação
+  // Faz as transformações na symbols_per_column e encoded_symbol_matrix
   cipher_adfgvx(cipher_key, key_length, max_per_column, message, encoded_symbol_matrix, symbols_per_column);
 
   // Salvar a mensagem cifrada em 'encrypted.txt'
