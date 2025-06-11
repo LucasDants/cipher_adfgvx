@@ -92,7 +92,7 @@ int get_adfgvx_symbols(char c, char *row, char *col)
 /**
  * @brief Insere um símbolo ADFGVX na matriz de colunas.
  * @param key_length Comprimento da chave.
- * @param max_per_column Número máximo de posições em cada coluna (para VLA).
+ * @param max_per_column Número máximo de posições em cada coluna
  * @param symbol Símbolo a ser inserido (row ou col).
  * @param symbol_count Contador global de símbolos (será incrementado).
  * @param encoded_symbol_matrix Matriz de saída contendo os símbolos organizados por coluna.
@@ -111,7 +111,7 @@ void insert_symbol_to_column(int key_length, int max_per_column, char symbol, in
 /**
  * @brief Converte a mensagem em colunas de símbolos ADFGVX para cifra por transposição.
  * @param key_length Comprimento da chave.
- * @param max_per_column Número máximo de posições em cada coluna (para VLA).
+ * @param max_per_column Número máximo de posições em cada coluna
  * @param message Mensagem original a ser cifrada.
  * @param encoded_symbol_matrix Matriz onde os símbolos cifrados serão armazenados por coluna.
  * @param symbols_per_column Vetor que armazena o número de elementos em cada coluna.
@@ -139,7 +139,7 @@ void polybius_encode_to_columns(int key_length, int max_per_column, char message
  * @brief Reorganiza as colunas da matriz com base na ordem alfabética da chave.
  * @param key A chave usada na transposição (array de caracteres).
  * @param key_length Comprimento da chave.
- * @param max_per_column Número máximo de posições em cada coluna (para VLA).
+ * @param max_per_column Número máximo de posições em cada coluna
  * @param encoded_symbol_matrix Matriz com os dados cifrados por colunas.
  * @param symbols_per_column Vetor com o número de elementos em cada coluna.
  */
@@ -188,7 +188,7 @@ void transpose_columns_by_key_order(char key[], int key_length, int max_per_colu
  * @brief Aplica a cifra ADFGVX: codifica os símbolos e faz a transposição das colunas.
  * @param key A chave usada na transposição (array de caracteres).
  * @param key_length Comprimento da chave.
- * @param max_per_column Número máximo de posições em cada coluna (para VLA).
+ * @param max_per_column Número máximo de posições em cada coluna
  * @param message Mensagem de entrada.
  * @param encoded_symbol_matrix Matriz onde os símbolos codificados serão armazenados.
  * @param symbols_per_column Vetor com a contagem de elementos em cada coluna.
@@ -231,7 +231,7 @@ int main()
     perror("Error reading file './key.txt'.");
     return 1;
   }
-
+ 
   // Define o tamanho da chave com base no conteúdo lido
   int key_length = strlen(cipher_key);
 
